@@ -4,6 +4,39 @@ import { FormatCard } from './components/FormatCard'
 import { FORMATS, MAX_FILES, MAX_FILE_SIZE_MB } from './constants'
 import type { ImageFile } from './types'
 
+const SESSION_KEY = 'scp_session_v1'
+
+interface StoredImage { id: string; name: string; dataUrl: string; width: number; height: number }
+
+async function toDataUrl(objectUrl: string): Promise<string> {
+  const blob = await fetch(objectUrl).then(r => r.blob())
+  return new Promise((res, rej) => {
+    const reader = new FileReader()
+    reader.onload = () => res(reader.result as string)
+    reader.onerror = rej
+    reader.readAsDataURL(blob)
+  })
+}
+
+function fromDataUrl(dataUrl: string): string {
+  const [header, b64] = dataUrl.split(',')
+  const mime = header.match(/:(.*?);/)![1]
+  const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0))
+  return URL.createObjectURL(new Blob([bytes], { type: mime }))
+}
+
+function loadSession(): { images: ImageFile[]; activeIdx: number } | null {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY)
+    if (!raw) return null
+    const { images, activeIdx } = JSON.parse(raw) as { images: StoredImage[]; activeIdx: number }
+    return {
+      images: images.map(s => ({ id: s.id, name: s.name, url: fromDataUrl(s.dataUrl), width: s.width, height: s.height })),
+      activeIdx,
+    }
+  } catch { return null }
+}
+
 function loadImageFile(file: File): Promise<ImageFile> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file)
@@ -15,9 +48,11 @@ function loadImageFile(file: File): Promise<ImageFile> {
   })
 }
 
+const _initialSession = loadSession() ?? { images: [] as ImageFile[], activeIdx: -1 }
+
 export default function App() {
-  const [images, setImages] = useState<ImageFile[]>([])
-  const [activeIdx, setActiveIdx] = useState(-1)
+  const [images, setImages] = useState<ImageFile[]>(_initialSession.images)
+  const [activeIdx, setActiveIdx] = useState<number>(_initialSession.activeIdx)
   const [isDragging, setIsDragging] = useState(false)
   const dragCounter = useRef(0)
 
@@ -68,6 +103,29 @@ export default function App() {
       document.removeEventListener('drop', onDrop)
     }
   }, [handleFilesAdded])
+
+  // Сохраняем сессию при каждом изменении списка файлов или активного индекса.
+  // Debounce 600ms — не сохраняем во время быстрых переключений.
+  useEffect(() => {
+    if (images.length === 0) {
+      sessionStorage.removeItem(SESSION_KEY)
+      return
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const stored: StoredImage[] = await Promise.all(
+          images.map(async img => ({
+            id: img.id, name: img.name, width: img.width, height: img.height,
+            dataUrl: await toDataUrl(img.url),
+          }))
+        )
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify({ images: stored, activeIdx }))
+      } catch {
+        // QuotaExceededError — молча пропускаем
+      }
+    }, 600)
+    return () => clearTimeout(timer)
+  }, [images, activeIdx])
 
   const handleDelete = useCallback((idx: number) => {
     URL.revokeObjectURL(images[idx].url)

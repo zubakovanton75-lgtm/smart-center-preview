@@ -1,4 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+
+function useCopyCoords() {
+  const [copied, setCopied] = useState(false)
+  const copy = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+  return { copied, copy }
+}
 import type { Format, ImageFile } from '../types'
 import { clampPos, getDefaultPos, getMaxCropSize } from '../utils/crop'
 
@@ -98,6 +109,8 @@ export function FormatCard({ image, format }: Props) {
 
   const handleReset = () => setPos(getDefaultPos(image.width, image.height, format.ratio))
 
+  const { copied, copy } = useCopyCoords()
+
   const x1 = Math.round(pos.x)
   const y1 = Math.round(pos.y)
   const x2 = Math.round(pos.x + fw)
@@ -189,8 +202,20 @@ export function FormatCard({ image, format }: Props) {
 
       {/* Coordinates */}
       <div className="mt-3 px-3 py-2.5 bg-gray-50 rounded-lg border border-gray-100">
-        <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-1.5">
-          Зона безопасности — пиксели оригинала
+        <div className="flex items-center justify-between mb-1.5">
+          <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+            Зона безопасности — пиксели оригинала
+          </div>
+          <button
+            onClick={() => copy(`${format.dims} — ${format.label}\nX: ${x1}–${x2}  Y: ${y1}–${y2}  (${Math.round(fw)}×${Math.round(fh)} px)`)}
+            className={`text-[10px] font-medium px-2 py-0.5 rounded-md border transition-colors cursor-pointer ${
+              copied
+                ? 'bg-green-50 border-green-200 text-green-600'
+                : 'bg-white border-gray-200 text-gray-500 hover:border-[#FC3F1D] hover:text-[#FC3F1D]'
+            }`}
+          >
+            {copied ? '✓ Скопировано' : 'Копировать'}
+          </button>
         </div>
         <div className="flex flex-wrap gap-3 font-mono text-xs font-semibold text-[#FC3F1D]">
           <span>X: {x1} – {x2}</span>
