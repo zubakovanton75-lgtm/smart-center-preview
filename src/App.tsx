@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Sidebar } from './components/Sidebar'
 import { FormatCard } from './components/FormatCard'
-import { FORMATS, MAX_FILES, MAX_FILE_SIZE_MB } from './constants'
+import { MAX_FILES, MAX_FILE_SIZE_MB, PLATFORM_ORDER, PLATFORMS } from './constants'
 import type { ImageFile } from './types'
+import type { PlatformId } from './constants'
 
 function loadImageFile(file: File): Promise<ImageFile> {
   return new Promise((resolve, reject) => {
@@ -18,6 +19,7 @@ function loadImageFile(file: File): Promise<ImageFile> {
 export default function App() {
   const [images, setImages] = useState<ImageFile[]>([])
   const [activeIdx, setActiveIdx] = useState(-1)
+  const [activePlatform, setActivePlatform] = useState<PlatformId>('yandex')
   const [isDragging, setIsDragging] = useState(false)
   const dragCounter = useRef(0)
 
@@ -46,7 +48,6 @@ export default function App() {
     })
   }, [images.length])
 
-  // Global drag-and-drop
   useEffect(() => {
     const onDragEnter = () => { dragCounter.current++; setIsDragging(true) }
     const onDragLeave = () => { dragCounter.current--; if (dragCounter.current === 0) setIsDragging(false) }
@@ -96,7 +97,6 @@ export default function App() {
       />
 
       <main className="flex-1 overflow-y-auto bg-[#f2f2f2]">
-        {/* Drop overlay */}
         {isDragging && (
           <div className="fixed inset-0 z-50 bg-orange-50/90 border-4 border-dashed border-[#FC3F1D] flex items-center justify-center pointer-events-none">
             <div className="text-center">
@@ -107,34 +107,56 @@ export default function App() {
         )}
 
         {!activeImage ? (
-          // Empty state
           <div className="flex flex-col items-center justify-center h-full text-center px-10 gap-4">
             <div className="text-6xl opacity-20">🖼️</div>
             <h2 className="text-2xl font-bold text-gray-300">Загрузите креативы</h2>
             <p className="text-sm text-gray-400 max-w-xs leading-relaxed">
-              Загрузите JPG или PNG — и сразу увидите все варианты кадрирования в форматах РСЯ Яндекс Директ
+              Загрузите JPG или PNG — и сразу увидите все варианты кадрирования в форматах Яндекс Директ и ВКонтакте
             </p>
           </div>
         ) : (
           <div className="p-6">
             {/* Header */}
-            <div className="mb-5">
+            <div className="mb-4">
               <h1 className="text-xl font-bold truncate">{activeImage.name}</h1>
               <p className="text-sm text-gray-400 mt-0.5">
-                {activeImage.width} × {activeImage.height} px&nbsp;&nbsp;·&nbsp;&nbsp;{FORMATS.length} форматов РСЯ
+                {activeImage.width} × {activeImage.height} px
               </p>
             </div>
 
-            {/* Format grid */}
-            <div className="grid gap-5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
-              {FORMATS.map(fmt => (
-                <FormatCard
-                  key={`${activeImage.id}_${fmt.id}`}
-                  image={activeImage}
-                  format={fmt}
-                />
+            {/* Platform tabs */}
+            <div className="flex gap-1 mb-5 bg-white rounded-xl p-1 shadow-sm border border-gray-100 w-fit">
+              {PLATFORM_ORDER.map(pid => (
+                <button
+                  key={pid}
+                  onClick={() => setActivePlatform(pid)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer border-none ${
+                    activePlatform === pid
+                      ? 'bg-[#FC3F1D] text-white shadow-sm'
+                      : 'bg-transparent text-gray-500 hover:text-gray-800 hover:bg-gray-50'
+                  }`}
+                >
+                  {PLATFORMS[pid].label}
+                </button>
               ))}
             </div>
+
+            {/* Format grids — оба рендерятся, но только один видим.
+                Это сохраняет позиции рамок при переключении вкладок. */}
+            {PLATFORM_ORDER.map(pid => (
+              <div
+                key={pid}
+                style={{ display: activePlatform === pid ? 'grid' : 'none', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}
+              >
+                {PLATFORMS[pid].formats.map(fmt => (
+                  <FormatCard
+                    key={`${activeImage.id}_${fmt.id}`}
+                    image={activeImage}
+                    format={fmt}
+                  />
+                ))}
+              </div>
+            ))}
           </div>
         )}
       </main>
