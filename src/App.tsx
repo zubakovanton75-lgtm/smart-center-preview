@@ -70,6 +70,19 @@ export default function App() {
     }
   }, [handleFilesAdded])
 
+  const handleDelete = useCallback((idx: number) => {
+    URL.revokeObjectURL(images[idx].url)
+    const next = images.filter((_, i) => i !== idx)
+    setImages(next)
+    if (next.length === 0) {
+      setActiveIdx(-1)
+    } else if (activeIdx >= next.length) {
+      setActiveIdx(next.length - 1)
+    } else if (activeIdx === idx) {
+      setActiveIdx(Math.max(0, idx - 1))
+    }
+  }, [images, activeIdx])
+
   const activeImage = activeIdx >= 0 ? images[activeIdx] : null
 
   return (
@@ -79,6 +92,7 @@ export default function App() {
         activeIdx={activeIdx}
         onSelect={setActiveIdx}
         onFilesAdded={handleFilesAdded}
+        onDelete={handleDelete}
       />
 
       <main className="flex-1 overflow-y-auto bg-[#f2f2f2]">

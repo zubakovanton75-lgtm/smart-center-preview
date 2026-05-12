@@ -7,9 +7,10 @@ interface Props {
   activeIdx: number
   onSelect: (idx: number) => void
   onFilesAdded: (files: FileList) => void
+  onDelete: (idx: number) => void
 }
 
-export function Sidebar({ images, activeIdx, onSelect, onFilesAdded }: Props) {
+export function Sidebar({ images, activeIdx, onSelect, onFilesAdded, onDelete }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
 
   return (
@@ -56,27 +57,39 @@ export function Sidebar({ images, activeIdx, onSelect, onFilesAdded }: Props) {
               Файлы ({images.length})
             </p>
             {images.map((img, i) => (
-              <button
+              <div
                 key={img.id}
-                onClick={() => onSelect(i)}
-                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg mb-0.5 text-left transition-colors cursor-pointer border ${
+                className={`group relative flex items-center gap-2 px-2 py-1.5 rounded-lg mb-0.5 border cursor-pointer transition-colors ${
                   i === activeIdx
                     ? 'bg-orange-50 border-[#FC3F1D]'
                     : 'bg-transparent border-transparent hover:bg-gray-50'
                 }`}
+                onClick={() => onSelect(i)}
               >
                 <img
                   src={img.url}
                   alt=""
                   className="w-9 h-9 object-cover rounded flex-shrink-0 bg-gray-100"
                 />
-                <div className="min-w-0">
-                  <div className="text-[11px] font-medium truncate max-w-[120px]" title={img.name}>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[11px] font-medium truncate max-w-[100px]" title={img.name}>
                     {img.name}
                   </div>
                   <div className="text-[10px] text-gray-400">{img.width} × {img.height} px</div>
                 </div>
-              </button>
+
+                {/* Delete button — появляется при наведении */}
+                <button
+                  onClick={e => { e.stopPropagation(); onDelete(i) }}
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 flex items-center justify-center rounded text-gray-400 hover:text-red-500 hover:bg-red-50 cursor-pointer bg-transparent border-none"
+                  title="Удалить"
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
             ))}
           </>
         )}

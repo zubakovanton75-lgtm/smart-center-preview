@@ -7,6 +7,23 @@ interface Props {
   format: Format
 }
 
+interface CornerDotProps {
+  coords: string
+  posClass: string
+  tooltipClass: string
+}
+
+function CornerDot({ coords, posClass, tooltipClass }: CornerDotProps) {
+  return (
+    <div className={`absolute group z-20 ${posClass}`}>
+      <div className="w-3 h-3 bg-[#FC3F1D] border-2 border-white rounded-full" />
+      <div className={`absolute ${tooltipClass} hidden group-hover:block bg-gray-900 text-white text-[10px] font-mono px-2 py-1 rounded-md whitespace-nowrap z-30 pointer-events-none`}>
+        {coords}
+      </div>
+    </div>
+  )
+}
+
 export function FormatCard({ image, format }: Props) {
   const imgRef = useRef<HTMLImageElement>(null)
   const [scale, setScale] = useState(0)
@@ -144,10 +161,27 @@ export function FormatCard({ image, format }: Props) {
               onMouseDown={handleMouseDown}
               onTouchStart={handleTouchStart}
             >
-              <div className="absolute w-2.5 h-2.5 bg-[#FC3F1D] border-2 border-white rounded-full top-0.5 left-0.5 z-20" />
-              <div className="absolute w-2.5 h-2.5 bg-[#FC3F1D] border-2 border-white rounded-full top-0.5 right-0.5 z-20" />
-              <div className="absolute w-2.5 h-2.5 bg-[#FC3F1D] border-2 border-white rounded-full bottom-0.5 left-0.5 z-20" />
-              <div className="absolute w-2.5 h-2.5 bg-[#FC3F1D] border-2 border-white rounded-full bottom-0.5 right-0.5 z-20" />
+              {/* Corner dots with coordinate tooltips */}
+              <CornerDot
+                coords={`x: ${x1}, y: ${y1}`}
+                posClass="top-0.5 left-0.5"
+                tooltipClass="top-5 left-0"
+              />
+              <CornerDot
+                coords={`x: ${x2}, y: ${y1}`}
+                posClass="top-0.5 right-0.5"
+                tooltipClass="top-5 right-0"
+              />
+              <CornerDot
+                coords={`x: ${x1}, y: ${y2}`}
+                posClass="bottom-0.5 left-0.5"
+                tooltipClass="bottom-5 left-0"
+              />
+              <CornerDot
+                coords={`x: ${x2}, y: ${y2}`}
+                posClass="bottom-0.5 right-0.5"
+                tooltipClass="bottom-5 right-0"
+              />
             </div>
           </>
         )}
@@ -162,9 +196,6 @@ export function FormatCard({ image, format }: Props) {
           <span>X: {x1} – {x2}</span>
           <span>Y: {y1} – {y2}</span>
           <span>{Math.round(fw)} × {Math.round(fh)} px</span>
-        </div>
-        <div className="text-[10px] text-gray-400 mt-1.5 italic">
-          Скажи дизайнеру: ключевые элементы должны быть в этой зоне
         </div>
       </div>
 
