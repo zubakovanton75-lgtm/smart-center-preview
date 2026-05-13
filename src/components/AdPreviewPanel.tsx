@@ -160,7 +160,7 @@ interface AdProps { image: ImageFile; positions: Record<string, Pos>; ad: AdData
 
 // V1: image (full) → РЕКЛАМА overlay → domain + title + desc + sitelinks + CTA button
 function VerticalV1({ image, positions, ad }: AdProps) {
-  const { pos, cropW, cropH } = getCrop(image, positions, FMT.v34)
+  const { pos, cropW, cropH } = getCrop(image, positions, FMT.sq)
   return (
     <AdWrap label="Вертикальные — вариант 1">
       <div className="relative">
@@ -181,7 +181,7 @@ function VerticalV1({ image, positions, ad }: AdProps) {
 
 // V2: domain header → image → title as blue hyperlink
 function VerticalV2({ image, positions, ad }: AdProps) {
-  const { pos, cropW, cropH } = getCrop(image, positions, FMT.v34)
+  const { pos, cropW, cropH } = getCrop(image, positions, FMT.sq)
   return (
     <AdWrap label="Вертикальные — вариант 2">
       <div className="px-3 pt-3 pb-2">
@@ -197,7 +197,7 @@ function VerticalV2({ image, positions, ad }: AdProps) {
 
 // V3: domain + pill badge → title + first sitelink (blue) + desc → image
 function VerticalV3({ image, positions, ad }: AdProps) {
-  const { pos, cropW, cropH } = getCrop(image, positions, FMT.v34)
+  const { pos, cropW, cropH } = getCrop(image, positions, FMT.sq)
   return (
     <AdWrap label="Вертикальные — вариант 3">
       <div className="px-3 pt-3 pb-0">
