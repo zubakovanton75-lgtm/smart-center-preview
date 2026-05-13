@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Sidebar } from './components/Sidebar'
 import { FormatCard } from './components/FormatCard'
+import { AdPreviewPanel } from './components/AdPreviewPanel'
 import { FORMATS, MAX_FILES, MAX_FILE_SIZE_MB } from './constants'
 import { getDefaultPos, getMaxCropSize } from './utils/crop'
 import type { ImageFile } from './types'
@@ -65,6 +66,7 @@ export default function App() {
   const [showSafeZone, setShowSafeZone] = useState(true)
   const [markMode, setMarkMode] = useState(false)
   const [markRect, setMarkRect] = useState<Rect | null>(null)
+  const [showPreviewPanel, setShowPreviewPanel] = useState(false)
 
   const activeImage = activeIdx >= 0 ? images[activeIdx] : null
 
@@ -207,6 +209,14 @@ export default function App() {
         onDelete={handleDelete}
       />
 
+      {showPreviewPanel && activeImage && (
+        <AdPreviewPanel
+          image={activeImage}
+          positions={positions}
+          onClose={() => setShowPreviewPanel(false)}
+        />
+      )}
+
       <main className="flex-1 overflow-y-auto bg-[#f2f2f2]">
         {isDragging && (
           <div className="fixed inset-0 z-50 bg-orange-50/90 border-4 border-dashed border-[#FC3F1D] flex items-center justify-center pointer-events-none">
@@ -281,6 +291,13 @@ export default function App() {
               {markMode && (!markRect || (markRect.w < 5 && markRect.h < 5)) && (
                 <span className="text-xs text-gray-400 italic">Нарисуйте область на любом формате</span>
               )}
+
+              <button
+                onClick={() => setShowPreviewPanel(true)}
+                className="ml-auto text-xs font-medium px-3 py-1.5 rounded-lg border bg-white border-gray-200 text-gray-600 hover:border-[#FC3F1D] hover:text-[#FC3F1D] transition-colors cursor-pointer"
+              >
+                👁 Предпросмотр объявления
+              </button>
             </div>
 
             <div className="grid gap-5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
