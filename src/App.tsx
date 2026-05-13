@@ -1,12 +1,16 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Sidebar } from './components/Sidebar'
 import { FormatCard } from './components/FormatCard'
 import { FORMATS, MAX_FILES, MAX_FILE_SIZE_MB } from './constants'
+import { getDefaultPos, getMaxCropSize } from './utils/crop'
 import type { ImageFile } from './types'
 
 const SESSION_KEY = 'scp_session_v1'
 
 interface StoredImage { id: string; name: string; dataUrl: string; width: number; height: number }
+
+type Pos = { x: number; y: number }
+type Rect = { x: number; y: number; w: number; h: number }
 
 async function toDataUrl(objectUrl: string): Promise<string> {
   const blob = await fetch(objectUrl).then(r => r.blob())
@@ -56,6 +60,61 @@ export default function App() {
   const [isDragging, setIsDragging] = useState(false)
   const dragCounter = useRef(0)
 
+  // Positions per format (in image coords), reset when active image changes
+  const [positions, setPositions] = useState<Record<string, Pos>>({})
+  const [showSafeZone, setShowSafeZone] = useState(true)
+  const [markMode, setMarkMode] = useState(false)
+  const [markRect, setMarkRect] = useState<Rect | null>(null)
+
+  const activeImage = activeIdx >= 0 ? images[activeIdx] : null
+
+  useEffect(() => {
+    setPositions({})
+    setMarkRect(null)
+  }, [activeImage?.id])
+
+  const handlePosChange = useCallback((formatId: string, pos: Pos) => {
+    setPositions(prev => ({ ...prev, [formatId]: pos }))
+  }, [])
+
+  const handleMarkRect = useCallback((rect: Rect | null) => {
+    setMarkRect(rect)
+  }, [])
+
+  const handleToggleMarkMode = () => {
+    setMarkMode(prev => {
+      if (prev) setMarkRect(null)
+      return !prev
+    })
+  }
+
+  // Intersection of all format crop rects = guaranteed-visible area across all formats
+  const safeZone = useMemo((): Rect | null => {
+    if (!activeImage) return null
+    let x1 = 0, y1 = 0
+    let x2 = activeImage.width, y2 = activeImage.height
+    for (const fmt of FORMATS) {
+      const { w, h } = getMaxCropSize(activeImage.width, activeImage.height, fmt.ratio)
+      const pos = positions[fmt.id] ?? getDefaultPos(activeImage.width, activeImage.height, fmt.ratio)
+      x1 = Math.max(x1, pos.x)
+      y1 = Math.max(y1, pos.y)
+      x2 = Math.min(x2, pos.x + w)
+      y2 = Math.min(y2, pos.y + h)
+    }
+    if (x2 <= x1 || y2 <= y1) return null
+    return { x: x1, y: y1, w: x2 - x1, h: y2 - y1 }
+  }, [activeImage, positions])
+
+  const markInSafe = useMemo((): boolean | null => {
+    if (!markRect || !safeZone || markRect.w < 5 || markRect.h < 5) return null
+    return (
+      markRect.x >= safeZone.x &&
+      markRect.y >= safeZone.y &&
+      markRect.x + markRect.w <= safeZone.x + safeZone.w &&
+      markRect.y + markRect.h <= safeZone.y + safeZone.h
+    )
+  }, [markRect, safeZone])
+
   const handleFilesAdded = useCallback(async (fileList: FileList) => {
     const remaining = MAX_FILES - images.length
     const files = Array.from(fileList)
@@ -104,8 +163,6 @@ export default function App() {
     }
   }, [handleFilesAdded])
 
-  // Сохраняем сессию при каждом изменении списка файлов или активного индекса.
-  // Debounce 600ms — не сохраняем во время быстрых переключений.
   useEffect(() => {
     if (images.length === 0) {
       sessionStorage.removeItem(SESSION_KEY)
@@ -140,8 +197,6 @@ export default function App() {
     }
   }, [images, activeIdx])
 
-  const activeImage = activeIdx >= 0 ? images[activeIdx] : null
-
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar
@@ -172,21 +227,79 @@ export default function App() {
           </div>
         ) : (
           <div className="p-6">
-            <div className="mb-5">
+            <div className="mb-4">
               <h1 className="text-xl font-bold truncate">{activeImage.name}</h1>
               <p className="text-sm text-gray-400 mt-0.5">
                 {activeImage.width} × {activeImage.height} px&nbsp;&nbsp;·&nbsp;&nbsp;{FORMATS.length} форматов РСЯ
               </p>
             </div>
 
+            {/* Toolbar */}
+            <div className="flex items-center gap-2 mb-5 flex-wrap">
+              <div className="relative group/safe">
+                <button
+                  onClick={() => setShowSafeZone(v => !v)}
+                  className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
+                    showSafeZone
+                      ? 'bg-teal-50 border-teal-400 text-teal-700'
+                      : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
+                  }`}
+                >
+                  {showSafeZone ? '✓ ' : ''}Безопасная зона
+                </button>
+                <div className="absolute left-0 top-full mt-1.5 z-50 hidden group-hover/safe:block w-64 bg-gray-900 text-white text-[11px] leading-relaxed px-3 py-2 rounded-lg shadow-lg pointer-events-none">
+                  Бирюзовый прямоугольник — область, которая гарантированно видна во всех 5 форматах РСЯ одновременно. Размещайте ключевые элементы внутри.
+                </div>
+              </div>
+
+              <div className="relative group/mark">
+                <button
+                  onClick={handleToggleMarkMode}
+                  className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
+                    markMode
+                      ? 'bg-orange-50 border-[#FC3F1D] text-[#FC3F1D]'
+                      : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
+                  }`}
+                >
+                  {markMode ? '✏ Разметка: вкл' : '✏ Режим разметки'}
+                </button>
+                <div className="absolute left-0 top-full mt-1.5 z-50 hidden group-hover/mark:block w-64 bg-gray-900 text-white text-[11px] leading-relaxed px-3 py-2 rounded-lg shadow-lg pointer-events-none">
+                  Нарисуйте область на изображении — и сразу узнаете, попадёт ли она в безопасную зону всех 5 форматов РСЯ. Удобно, чтобы проверить логотип, текст или лицо.
+                </div>
+              </div>
+
+              {markMode && markRect && markInSafe !== null && (
+                <span className={`text-xs font-semibold px-3 py-1.5 rounded-lg border ${
+                  markInSafe
+                    ? 'bg-green-50 border-green-300 text-green-700'
+                    : 'bg-red-50 border-red-300 text-red-600'
+                }`}>
+                  {markInSafe ? '✓ Область в безопасной зоне' : '✗ Выходит за пределы'}
+                </span>
+              )}
+
+              {markMode && (!markRect || (markRect.w < 5 && markRect.h < 5)) && (
+                <span className="text-xs text-gray-400 italic">Нарисуйте область на любом формате</span>
+              )}
+            </div>
+
             <div className="grid gap-5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
-              {FORMATS.map(fmt => (
-                <FormatCard
-                  key={`${activeImage.id}_${fmt.id}`}
-                  image={activeImage}
-                  format={fmt}
-                />
-              ))}
+              {FORMATS.map(fmt => {
+                const pos = positions[fmt.id] ?? getDefaultPos(activeImage.width, activeImage.height, fmt.ratio)
+                return (
+                  <FormatCard
+                    key={`${activeImage.id}_${fmt.id}`}
+                    image={activeImage}
+                    format={fmt}
+                    pos={pos}
+                    onPosChange={(newPos) => handlePosChange(fmt.id, newPos)}
+                    safeZone={showSafeZone ? safeZone : null}
+                    markMode={markMode}
+                    markRect={markMode ? markRect : null}
+                    onMarkRect={handleMarkRect}
+                  />
+                )
+              })}
             </div>
           </div>
         )}
