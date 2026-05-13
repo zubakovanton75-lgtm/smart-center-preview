@@ -144,9 +144,9 @@ function SitelinkList({ links }: { links: string[] }) {
 
 function AdWrap({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="mb-5">
-      <div className="text-[10px] uppercase tracking-wide text-gray-400 font-medium mb-1.5 px-0.5">{label}</div>
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="mb-5 flex flex-col items-center">
+      <div className="text-[10px] uppercase tracking-wide text-gray-400 font-medium mb-1.5 self-start px-0.5">{label}</div>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden w-[300px]">
         {children}
       </div>
     </div>
@@ -219,7 +219,7 @@ function HorizontalV1({ image, positions, ad }: AdProps) {
   return (
     <AdWrap label="Горизонтальные — вариант 1">
       <div className="flex gap-3 p-3">
-        <div className="w-[112px] flex-shrink-0">
+        <div className="w-[100px] flex-shrink-0">
           <CroppedImage image={image} pos={pos} cropW={cropW} cropH={cropH} className="rounded-lg" />
         </div>
         <div className="flex-1 min-w-0">
