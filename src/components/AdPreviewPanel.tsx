@@ -250,23 +250,6 @@ function HorizontalV2({ image, positions, ad }: AdProps) {
   )
 }
 
-// H3: 16:9 wide image + domain + title (screenshot missing — approximation)
-function HorizontalV3({ image, positions, ad }: AdProps) {
-  const { pos, cropW, cropH } = getCrop(image, positions, FMT.w169)
-  return (
-    <AdWrap label="Горизонтальные — вариант 3 ✱">
-      <div className="relative">
-        <CroppedImage image={image} pos={pos} cropW={cropW} cropH={cropH} />
-        <ReclamaBadge overlay />
-      </div>
-      <div className="px-3 py-2.5">
-        <DomainRow domain={ad.domain} badge="none" dots={false} />
-        <div className="text-[14px] font-bold text-gray-900 mt-1 leading-snug">{ad.title}</div>
-      </div>
-    </AdWrap>
-  )
-}
-
 // ── SQUARE ────────────────────────────────────────────────────
 
 // Sq1: 1:1 image + РЕКЛАМА overlay + domain badge bottom-right + title + arrow
@@ -286,42 +269,6 @@ function SquareV1({ image, positions, ad }: AdProps) {
       <div className="px-3 py-2.5 flex items-start justify-between gap-2">
         <div className="text-[15px] font-bold text-gray-900 leading-snug">{ad.title}</div>
         <span className="text-[#0A5AE7] text-lg mt-0.5 flex-shrink-0">→</span>
-      </div>
-    </AdWrap>
-  )
-}
-
-// Sq2: 1:1 image + domain + title + sitelinks + button (approximation)
-function SquareV2({ image, positions, ad }: AdProps) {
-  const { pos, cropW, cropH } = getCrop(image, positions, FMT.sq)
-  return (
-    <AdWrap label="Квадратные — вариант 2 ✱">
-      <div className="relative">
-        <CroppedImage image={image} pos={pos} cropW={cropW} cropH={cropH} />
-        <ReclamaBadge overlay />
-      </div>
-      <div className="px-3 pt-3 pb-4">
-        <DomainRow domain={ad.domain} badge="none" dots={false} />
-        <div className="text-[15px] font-bold text-gray-900 mt-1.5 leading-snug">{ad.title}</div>
-        <SitelinkList links={ad.sitelinks.slice(0, 3)} />
-        <CtaButton text={ad.buttonText} />
-      </div>
-    </AdWrap>
-  )
-}
-
-// Sq3: domain header + 1:1 image + title + desc (approximation)
-function SquareV3({ image, positions, ad }: AdProps) {
-  const { pos, cropW, cropH } = getCrop(image, positions, FMT.sq)
-  return (
-    <AdWrap label="Квадратные — вариант 3 ✱">
-      <div className="px-3 pt-3 pb-2">
-        <DomainRow domain={ad.domain} badge="inline" />
-      </div>
-      <CroppedImage image={image} pos={pos} cropW={cropW} cropH={cropH} />
-      <div className="px-3 pt-2 pb-3">
-        <div className="text-[15px] font-bold text-gray-900 leading-snug">{ad.title}</div>
-        <div className="text-[12px] text-gray-500 mt-1 leading-snug">{ad.description}</div>
       </div>
     </AdWrap>
   )
@@ -419,18 +366,10 @@ export function AdPreviewPanel({ image, positions, onClose }: AdPreviewPanelProp
           <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest mb-3 mt-1">Горизонтальные</div>
           <HorizontalV1 image={image} positions={positions} ad={ad} />
           <HorizontalV2 image={image} positions={positions} ad={ad} />
-          <HorizontalV3 image={image} positions={positions} ad={ad} />
 
           {/* ── Square ─────────────────────────────────────── */}
           <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest mb-3 mt-1">Квадратные</div>
           <SquareV1 image={image} positions={positions} ad={ad} />
-          <SquareV2 image={image} positions={positions} ad={ad} />
-          <SquareV3 image={image} positions={positions} ad={ad} />
-
-          {/* footnote */}
-          <div className="text-[10px] text-gray-400 mt-2 mb-4 leading-relaxed">
-            ✱ Скриншот из кабинета не предоставлен — вариант приближённый. Пришли скрин для точной вёрстки.
-          </div>
         </div>
       </div>
     </>
